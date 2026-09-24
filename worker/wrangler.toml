@@ -5,7 +5,7 @@ compatibility_date = "2024-11-01"
 # Non-secret vars. ALLOWED_ORIGINS is templated per environment by Octopus
 # (comma-separated list of Pages origins allowed to call this Worker).
 [vars]
-ALLOWED_ORIGINS = "http://localhost:8080,https://kielfrost-octo.github.io"
+ALLOWED_ORIGINS = "http://localhost:8080"
 
 # Secrets (EBAY_CLIENT_ID, EBAY_CLIENT_SECRET) are NOT stored here.
 # They are set via `wrangler secret put` by the Octopus deployment runbook.
