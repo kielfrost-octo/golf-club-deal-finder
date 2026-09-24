@@ -1,0 +1,39 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  octopus-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Push build information to Octopus
+        uses: OctopusDeploy/push-build-information-action@v3
+        with:
+          server: ${{ secrets.OCTOPUS_SERVER_URL }}
+          api_key: ${{ secrets.OCTOPUS_API_KEY }}
+          space: ${{ secrets.OCTOPUS_SPACE }}
+          packages: golf-club-deal-finder
+          version: ${{ github.sha }}
+
+      - name: Create Octopus release
+        uses: OctopusDeploy/create-release-action@v3
+        with:
+          server: ${{ secrets.OCTOPUS_SERVER_URL }}
+          api_key: ${{ secrets.OCTOPUS_API_KEY }}
+          space: ${{ secrets.OCTOPUS_SPACE }}
+          project: "Golf Club Deal Finder"
+          release_number: ${{ github.run_number }}
+
+      - name: Deploy release to Production
+        uses: OctopusDeploy/deploy-release-action@v3
+        with:
+          server: ${{ secrets.OCTOPUS_SERVER_URL }}
+          api_key: ${{ secrets.OCTOPUS_API_KEY }}
+          space: ${{ secrets.OCTOPUS_SPACE }}
+          project: "Golf Club Deal Finder"
+          release_number: ${{ github.run_number }}
+          environments: Production

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Golf Club Deal Finder</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <h1>⛳ Golf Club Deal Finder</h1>
+    <p class="tagline">Find the best eBay deals on golf clubs</p>
+  </header>
+
+  <main>
+    <form id="search-form" class="search-form">
+      <input
+        id="search-term"
+        type="text"
+        name="term"
+        placeholder="e.g. TaylorMade driver"
+        autocomplete="off"
+      >
+      <select id="search-category" name="category">
+        <option value="">All clubs</option>
+        <option value="driver">Driver</option>
+        <option value="putter">Putter</option>
+        <option value="iron">Iron</option>
+        <option value="wedge">Wedge</option>
+        <option value="hybrid">Hybrid</option>
+        <option value="wood">Wood</option>
+      </select>
+      <button type="submit">Search</button>
+    </form>
+
+    <p id="status" class="status" role="status" aria-live="polite"></p>
+    <div id="results-container"></div>
+  </main>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,59 @@
+name: Ephemeral PR Environment
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+
+jobs:
+  deploy-preview:
+    if: github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Push build information to Octopus
+        uses: OctopusDeploy/push-build-information-action@v3
+        with:
+          server: ${{ secrets.OCTOPUS_SERVER_URL }}
+          api_key: ${{ secrets.OCTOPUS_API_KEY }}
+          space: ${{ secrets.OCTOPUS_SPACE }}
+          packages: golf-club-deal-finder
+          version: ${{ github.sha }}
+
+      - name: Create Octopus release
+        uses: OctopusDeploy/create-release-action@v3
+        with:
+          server: ${{ secrets.OCTOPUS_SERVER_URL }}
+          api_key: ${{ secrets.OCTOPUS_API_KEY }}
+          space: ${{ secrets.OCTOPUS_SPACE }}
+          project: "Golf Club Deal Finder"
+          release_number: "pr-${{ github.event.pull_request.number }}.${{ github.run_number }}"
+          channel: "Pull Requests"
+
+      - name: Deploy to ephemeral PR environment
+        uses: OctopusDeploy/deploy-release-action@v3
+        with:
+          server: ${{ secrets.OCTOPUS_SERVER_URL }}
+          api_key: ${{ secrets.OCTOPUS_API_KEY }}
+          space: ${{ secrets.OCTOPUS_SPACE }}
+          project: "Golf Club Deal Finder"
+          release_number: "pr-${{ github.event.pull_request.number }}.${{ github.run_number }}"
+          environments: PR-${{ github.event.pull_request.number }}
+          variables: |
+            PrNumber:${{ github.event.pull_request.number }}
+
+  teardown-preview:
+    if: github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run teardown runbook
+        uses: OctopusDeploy/run-runbook-action@v3
+        with:
+          server: ${{ secrets.OCTOPUS_SERVER_URL }}
+          api_key: ${{ secrets.OCTOPUS_API_KEY }}
+          space: ${{ secrets.OCTOPUS_SPACE }}
+          project: "Golf Club Deal Finder"
+          runbook: "Teardown PR Environment"
+          environments: PR-${{ github.event.pull_request.number }}
+          variables: |
+            PrNumber:${{ github.event.pull_request.number }}
