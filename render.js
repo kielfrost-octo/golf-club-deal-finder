@@ -3,18 +3,23 @@ function formatPrice(item) {
   return new Intl.NumberFormat(undefined, { style: 'currency', currency: item.currency ?? 'USD' }).format(item.price);
 }
 
+const escapeHtml = (value) =>
+  String(value ?? '').replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+
+const safeUrl = (value) => (/^https:\/\//i.test(value ?? '') ? escapeHtml(value) : '#');
+
 function itemCardHtml(item, { showImage }) {
-  const image = showImage
-    ? `<img class="item-thumb" src="${item.imageUrl ?? ''}" alt="" loading="lazy" onerror="this.style.display='none'">`
+  const image = showImage && item.imageUrl
+    ? `<img class="item-thumb" src="${safeUrl(item.imageUrl)}" alt="" loading="lazy">`
     : '';
   return `
-    <a class="item-card" href="${item.itemWebUrl}" target="_blank" rel="noopener noreferrer">
+    <a class="item-card" href="${safeUrl(item.itemWebUrl)}" target="_blank" rel="noopener noreferrer">
       ${image}
       <div class="item-body">
-        <p class="item-title">${item.title}</p>
+        <p class="item-title">${escapeHtml(item.title)}</p>
         <p class="item-meta">
-          <span class="item-price">${formatPrice(item)}</span>
-          <span class="item-condition">${item.condition ?? ''}</span>
+          <span class="item-price">${escapeHtml(formatPrice(item))}</span>
+          <span class="item-condition">${escapeHtml(item.condition)}</span>
         </p>
       </div>
     </a>
@@ -34,5 +39,6 @@ export function renderGrid(results) {
   const grid = document.createElement('div');
   grid.className = 'results results--grid';
   grid.innerHTML = results.map((item) => itemCardHtml(item, { showImage: true })).join('');
+  grid.querySelectorAll('img').forEach((img) => img.addEventListener('error', () => img.remove(), { once: true }));
   return grid;
 }
