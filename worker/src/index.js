@@ -38,7 +38,8 @@ async function getAccessToken(env) {
   });
 
   if (!response.ok) {
-    throw new Error(`eBay OAuth failed (${response.status})`);
+    const detail = await response.json().catch(() => ({}));
+    throw new Error(`eBay OAuth failed (${response.status}): ${detail.error_description ?? detail.error ?? 'unknown'}`);
   }
 
   const data = await response.json();
