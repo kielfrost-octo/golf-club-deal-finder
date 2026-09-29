@@ -1,6 +1,10 @@
-const EBAY_TOKEN_URL = 'https://api.ebay.com/identity/v1/oauth2/token';
-const EBAY_SEARCH_URL = 'https://api.ebay.com/buy/browse/v1/item_summary/search';
+const EBAY_HOSTS = {
+  production: 'https://api.ebay.com',
+  sandbox: 'https://api.sandbox.ebay.com',
+};
 const EBAY_SCOPE = 'https://api.ebay.com/oauth/api_scope';
+
+const ebayHost = (env) => EBAY_HOSTS[env.EBAY_ENV] ?? EBAY_HOSTS.production;
 
 // eBay Golf Clubs category is 115280; refine with keywords per club type.
 const CATEGORY_KEYWORDS = {
@@ -21,7 +25,7 @@ async function getAccessToken(env) {
   }
 
   const credentials = btoa(`${env.EBAY_CLIENT_ID}:${env.EBAY_CLIENT_SECRET}`);
-  const response = await fetch(EBAY_TOKEN_URL, {
+  const response = await fetch(`${ebayHost(env)}/identity/v1/oauth2/token`, {
     method: 'POST',
     headers: {
       Authorization: `Basic ${credentials}`,
@@ -61,7 +65,7 @@ async function searchEbay(env, term, category) {
     limit: '30',
   });
 
-  const response = await fetch(`${EBAY_SEARCH_URL}?${params.toString()}`, {
+  const response = await fetch(`${ebayHost(env)}/buy/browse/v1/item_summary/search?${params.toString()}`, {
     headers: {
       Authorization: `Bearer ${token}`,
       'X-EBAY-C-MARKETPLACE-ID': 'EBAY_US',
