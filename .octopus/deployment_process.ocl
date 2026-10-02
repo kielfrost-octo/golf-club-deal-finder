@@ -1,0 +1,90 @@
+step "deploy-worker" {
+    name = "Deploy Worker"
+
+    action {
+        action_type = "Octopus.Script"
+        properties = {
+            Octopus.Action.Script.ScriptBody = <<-EOT
+                set -euo pipefail
+
+                NODE_VERSION=22.11.0
+                if ! command -v node >/dev/null; then
+                  curl -fsSL "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-x64.tar.xz" | tar -xJ -C /tmp
+                  export PATH="/tmp/node-v${NODE_VERSION}-linux-x64/bin:$PATH"
+                fi
+
+                cd "$(get_octopusvariable "Octopus.Action.Package[site].ExtractedPath")/worker"
+                npm ci --no-audit --no-fund
+
+                export CLOUDFLARE_API_TOKEN="$(get_octopusvariable "Cloudflare.ApiToken")"
+                export CLOUDFLARE_ACCOUNT_ID="$(get_octopusvariable "Cloudflare.AccountId")"
+
+                npx wrangler deploy \
+                  --var "ALLOWED_ORIGINS:$(get_octopusvariable "Site.AllowedOrigins")" \
+                  --var "EBAY_ENV:$(get_octopusvariable "eBay.Env")"
+
+                printf '%s' "$(get_octopusvariable "eBay.ClientId")" | npx wrangler secret put EBAY_CLIENT_ID
+                printf '%s' "$(get_octopusvariable "eBay.ClientSecret")" | npx wrangler secret put EBAY_CLIENT_SECRET
+                EOT
+            Octopus.Action.Script.ScriptSource = "Inline"
+            Octopus.Action.Script.Syntax = "Bash"
+        }
+        worker_pool = "hosted-ubuntu"
+
+        packages "site" {
+            acquisition_location = "ExecutionTarget"
+            feed = "octopus-server-built-in"
+            package_id = "golf-club-deal-finder"
+            properties = {
+                Extract = "True"
+                Purpose = ""
+                SelectionMode = "immediate"
+            }
+        }
+    }
+}
+
+step "publish-site" {
+    name = "Publish Site to GitHub Pages"
+
+    action {
+        action_type = "Octopus.Script"
+        properties = {
+            Octopus.Action.Script.ScriptBody = <<-EOT
+                set -euo pipefail
+
+                SRC="$(get_octopusvariable "Octopus.Action.Package[site].ExtractedPath")"
+                OUT="$(mktemp -d)"
+                cp "$SRC"/index.html "$SRC"/styles.css "$SRC"/app.js "$SRC"/api.js "$SRC"/render.js "$OUT"/
+
+                cat > "$OUT/config.js" <<CONFIG
+                export const WORKER_URL = '$(get_octopusvariable "Worker.Url")';
+                export const UI_VARIANT = '$(get_octopusvariable "UI.Variant")';
+                CONFIG
+                touch "$OUT/.nojekyll"
+
+                cd "$OUT"
+                git init -q -b gh-pages
+                git config user.name "Octopus Deploy"
+                git config user.email "octopus@users.noreply.github.com"
+                git add -A
+                git commit -q -m "Release #{Octopus.Release.Number} to #{Octopus.Environment.Name}"
+                git push -q -f "https://x-access-token:$(get_octopusvariable "GitHub.PagesToken")@github.com/kielfrost-octo/golf-club-deal-finder.git" gh-pages
+                EOT
+            Octopus.Action.Script.ScriptSource = "Inline"
+            Octopus.Action.Script.Syntax = "Bash"
+        }
+        worker_pool = "hosted-ubuntu"
+
+        packages "site" {
+            acquisition_location = "ExecutionTarget"
+            feed = "octopus-server-built-in"
+            package_id = "golf-club-deal-finder"
+            properties = {
+                Extract = "True"
+                Purpose = ""
+                SelectionMode = "immediate"
+            }
+        }
+    }
+}

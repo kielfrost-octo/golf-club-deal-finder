@@ -3,37 +3,57 @@ name: Deploy to Production
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - '.octopus/**'
+      - '**.md'
+
+env:
+  PACKAGE_ID: golf-club-deal-finder
+  PROJECT: Golf Club Deal Finder
 
 jobs:
   octopus-release:
     runs-on: ubuntu-latest
+    env:
+      OCTOPUS_URL: ${{ secrets.OCTOPUS_SERVER_URL }}
+      OCTOPUS_API_KEY: ${{ secrets.OCTOPUS_API_KEY }}
+      OCTOPUS_SPACE: ${{ secrets.OCTOPUS_SPACE }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Push build information to Octopus
+      - name: Set version
+        run: echo "VERSION=1.0.${{ github.run_number }}" >> "$GITHUB_ENV"
+
+      - name: Package site and Worker
+        run: |
+          mkdir -p dist
+          zip -r "dist/${PACKAGE_ID}.${VERSION}.zip" \
+            index.html styles.css app.js api.js render.js config.js \
+            worker/src worker/package.json worker/package-lock.json worker/wrangler.toml
+
+      - name: Push package to Octopus
+        uses: OctopusDeploy/push-package-action@v3
+        with:
+          packages: dist/${{ env.PACKAGE_ID }}.${{ env.VERSION }}.zip
+
+      - name: Push build information
         uses: OctopusDeploy/push-build-information-action@v3
         with:
-          server: ${{ secrets.OCTOPUS_SERVER_URL }}
-          api_key: ${{ secrets.OCTOPUS_API_KEY }}
-          space: ${{ secrets.OCTOPUS_SPACE }}
-          packages: golf-club-deal-finder
-          version: ${{ github.sha }}
+          packages: ${{ env.PACKAGE_ID }}
+          version: ${{ env.VERSION }}
 
-      - name: Create Octopus release
+      - name: Create release
         uses: OctopusDeploy/create-release-action@v3
         with:
-          server: ${{ secrets.OCTOPUS_SERVER_URL }}
-          api_key: ${{ secrets.OCTOPUS_API_KEY }}
-          space: ${{ secrets.OCTOPUS_SPACE }}
-          project: "Golf Club Deal Finder"
-          release_number: ${{ github.run_number }}
+          project: ${{ env.PROJECT }}
+          release_number: ${{ env.VERSION }}
+          package_version: ${{ env.VERSION }}
+          git_ref: ${{ github.ref }}
+          git_commit: ${{ github.sha }}
 
-      - name: Deploy release to Production
+      - name: Deploy to Production
         uses: OctopusDeploy/deploy-release-action@v3
         with:
-          server: ${{ secrets.OCTOPUS_SERVER_URL }}
-          api_key: ${{ secrets.OCTOPUS_API_KEY }}
-          space: ${{ secrets.OCTOPUS_SPACE }}
-          project: "Golf Club Deal Finder"
-          release_number: ${{ github.run_number }}
+          project: ${{ env.PROJECT }}
+          release_number: ${{ env.VERSION }}
           environments: Production
