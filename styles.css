@@ -159,6 +159,21 @@ main {
   color: var(--text-dim);
 }
 
+.site-footer {
+  text-align: center;
+  padding: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.release-badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+  border-radius: 9999px;
+  padding: 0.2rem 0.75rem;
+}
+
 .item-price {
   color: var(--accent);
   font-weight: 600;

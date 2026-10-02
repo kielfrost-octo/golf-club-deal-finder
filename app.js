@@ -1,6 +1,6 @@
 import { searchClubs, SearchError } from './api.js';
 import { renderCompact, renderGrid } from './render.js';
-import { UI_VARIANT } from './config.js';
+import { UI_VARIANT, RELEASE_VERSION, ENVIRONMENT } from './config.js';
 
 const form = document.querySelector('#search-form');
 const termInput = document.querySelector('#search-term');
@@ -49,3 +49,7 @@ async function handleSearch(event) {
 }
 
 form.addEventListener('submit', handleSearch);
+
+document.querySelector('#release-badge').textContent = RELEASE_VERSION
+  ? `v${RELEASE_VERSION} · ${ENVIRONMENT}`
+  : 'local dev';

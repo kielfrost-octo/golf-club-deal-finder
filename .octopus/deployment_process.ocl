@@ -60,6 +60,8 @@ step "publish-site" {
                 cat > "$OUT/config.js" <<CONFIG
                 export const WORKER_URL = '$(get_octopusvariable "Worker.Url")';
                 export const UI_VARIANT = '$(get_octopusvariable "UI.Variant")';
+                export const RELEASE_VERSION = '$(get_octopusvariable "Octopus.Release.Number")';
+                export const ENVIRONMENT = '$(get_octopusvariable "Octopus.Environment.Name")';
                 CONFIG
                 touch "$OUT/.nojekyll"
 
