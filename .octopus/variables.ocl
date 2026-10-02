@@ -1,0 +1,19 @@
+variable "UI.Variant" {
+    value "compact" {}
+}
+
+variable "Site.AllowedOrigins" {
+    value "http://localhost:8080,https://kielfrost-octo.github.io" {}
+}
+
+variable "Worker.Url" {
+    value "https://golf-club-finder.kiel-frost.workers.dev" {}
+}
+
+variable "eBay.Env" {
+    value "production" {}
+}
+
+variable "Cloudflare.AccountId" {
+    value "0798dee4b1d26da00bb6dd886651b0da" {}
+}
