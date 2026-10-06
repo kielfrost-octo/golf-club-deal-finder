@@ -1,5 +1,9 @@
 step "deploy-worker" {
+    condition = "Variable"
     name = "Deploy Worker"
+    properties = {
+        Octopus.Step.ConditionVariableExpression = "#{if Octopus.Environment.Name == \"Production\"}True#{/if}"
+    }
 
     action {
         action_type = "Octopus.Script"
@@ -68,13 +72,38 @@ step "publish-site" {
                 sed -i -E "s#(src|href)=\"(app\.js|styles\.css)\"#\1=\"\2?v=${VER}\"#g" "$OUT/index.html"
                 touch "$OUT/.nojekyll"
 
-                cd "$OUT"
-                git init -q -b gh-pages
+                ENV_NAME="$(get_octopusvariable "Octopus.Environment.Name")"
+                REPO="https://x-access-token:$(get_octopusvariable "GitHub.PagesToken")@github.com/kielfrost-octo/golf-club-deal-finder.git"
+                SITE="$(mktemp -d)"
+                git clone -q --depth 1 --branch gh-pages "$REPO" "$SITE"
+                cd "$SITE"
+
+                # Production owns the site root; each preview owns previews/<env>/.
+                if [ "$ENV_NAME" = "Production" ]; then
+                  find . -mindepth 1 -maxdepth 1 ! -name .git ! -name previews -exec rm -rf {} +
+                  cp -R "$OUT"/. .
+                  URL="https://kielfrost-octo.github.io/golf-club-deal-finder/"
+                else
+                  rm -rf "previews/${ENV_NAME}"
+                  mkdir -p "previews/${ENV_NAME}"
+                  cp -R "$OUT"/. "previews/${ENV_NAME}/"
+                  touch .nojekyll
+                  URL="https://kielfrost-octo.github.io/golf-club-deal-finder/previews/${ENV_NAME}/"
+                fi
+
                 git config user.name "Octopus Deploy"
                 git config user.email "octopus@users.noreply.github.com"
                 git add -A
-                git commit -q -m "Release #{Octopus.Release.Number} to #{Octopus.Environment.Name}"
-                git push -q -f "https://x-access-token:$(get_octopusvariable "GitHub.PagesToken")@github.com/kielfrost-octo/golf-club-deal-finder.git" gh-pages
+                if git commit -q -m "Release #{Octopus.Release.Number} to ${ENV_NAME}"; then
+                  for attempt in 1 2 3; do
+                    git push -q origin gh-pages && break
+                    [ "$attempt" = 3 ] && exit 1
+                    git pull -q --rebase origin gh-pages
+                  done
+                fi
+
+                set_octopusvariable "SiteUrl" "$URL"
+                echo "Published to $URL"
                 EOT
             Octopus.Action.Script.ScriptSource = "Inline"
             Octopus.Action.Script.Syntax = "Bash"
