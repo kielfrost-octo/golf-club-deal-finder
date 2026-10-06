@@ -63,6 +63,9 @@ step "publish-site" {
                 export const RELEASE_VERSION = '$(get_octopusvariable "Octopus.Release.Number")';
                 export const ENVIRONMENT = '$(get_octopusvariable "Octopus.Environment.Name")';
                 CONFIG
+                VER="$(get_octopusvariable "Octopus.Release.Number")"
+                sed -i -E "s#(from '\./[a-z]+\.js)'#\1?v=${VER}'#g" "$OUT"/*.js
+                sed -i -E "s#(src|href)=\"(app\.js|styles\.css)\"#\1=\"\2?v=${VER}\"#g" "$OUT/index.html"
                 touch "$OUT/.nojekyll"
 
                 cd "$OUT"
