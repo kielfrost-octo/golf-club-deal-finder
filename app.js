@@ -1,6 +1,7 @@
 import { searchClubs, SearchError } from './api.js';
 import { renderCompact, renderGrid } from './render.js';
-import { UI_VARIANT, RELEASE_VERSION, ENVIRONMENT } from './config.js';
+import { RELEASE_VERSION, ENVIRONMENT } from './config.js';
+import { getFlag } from './flags.js';
 
 const form = document.querySelector('#search-form');
 const termInput = document.querySelector('#search-term');
@@ -8,7 +9,7 @@ const categorySelect = document.querySelector('#search-category');
 const resultsContainer = document.querySelector('#results-container');
 const statusEl = document.querySelector('#status');
 
-const renderResults = UI_VARIANT === 'grid' ? renderGrid : renderCompact;
+const gridView = getFlag('grid-view', false);
 
 let activeController = null;
 
@@ -41,7 +42,8 @@ async function handleSearch(event) {
     }
 
     setStatus(`${results.length} listing${results.length === 1 ? '' : 's'} found`);
-    resultsContainer.replaceChildren(renderResults(results));
+    const render = (await gridView) ? renderGrid : renderCompact;
+    resultsContainer.replaceChildren(render(results));
   } catch (error) {
     if (error?.name === 'AbortError') return;
     setStatus(error instanceof SearchError ? error.message : 'Something went wrong. Please try again.');

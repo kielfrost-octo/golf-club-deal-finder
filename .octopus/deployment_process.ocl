@@ -55,11 +55,11 @@ step "publish-site" {
 
                 SRC="$(get_octopusvariable "Octopus.Action.Package[site].ExtractedPath")"
                 OUT="$(mktemp -d)"
-                cp "$SRC"/index.html "$SRC"/styles.css "$SRC"/app.js "$SRC"/api.js "$SRC"/render.js "$OUT"/
+                cp "$SRC"/index.html "$SRC"/styles.css "$SRC"/app.js "$SRC"/api.js "$SRC"/render.js "$SRC"/flags.js "$OUT"/
 
                 cat > "$OUT/config.js" <<CONFIG
                 export const WORKER_URL = '$(get_octopusvariable "Worker.Url")';
-                export const UI_VARIANT = '$(get_octopusvariable "UI.Variant")';
+                export const FEATURE_CLIENT_ID = '$(get_octopusvariable "Octopus.FeatureToggles.ClientIdentifier")';
                 export const RELEASE_VERSION = '$(get_octopusvariable "Octopus.Release.Number")';
                 export const ENVIRONMENT = '$(get_octopusvariable "Octopus.Environment.Name")';
                 CONFIG
