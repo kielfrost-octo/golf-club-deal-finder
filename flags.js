@@ -1,4 +1,4 @@
-import { FEATURE_CLIENT_ID, RELEASE_VERSION } from './config.js?v=1.0.1-pr1.1';
+import { FEATURE_CLIENT_ID, RELEASE_VERSION } from './config.js?v=1.0.1-pr1.2';
 
 const PROVIDER_URL = 'https://esm.sh/@octopusdeploy/openfeature@5.0.0';
 const SDK_URL = 'https://esm.sh/@openfeature/web-sdk@1.10.0';
