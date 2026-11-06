@@ -1,7 +1,7 @@
-import { searchClubs, SearchError } from './api.js?v=1.0.16';
-import { renderCompact, renderGrid } from './render.js?v=1.0.16';
-import { RELEASE_VERSION, ENVIRONMENT } from './config.js?v=1.0.16';
-import { getFlag } from './flags.js?v=1.0.16';
+import { searchClubs, SearchError } from './api.js?v=1.0.1-pr1.1';
+import { renderCompact, renderGrid } from './render.js?v=1.0.1-pr1.1';
+import { RELEASE_VERSION, ENVIRONMENT } from './config.js?v=1.0.1-pr1.1';
+import { getFlag } from './flags.js?v=1.0.1-pr1.1';
 
 const form = document.querySelector('#search-form');
 const termInput = document.querySelector('#search-term');

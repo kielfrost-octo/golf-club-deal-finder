@@ -1,4 +1,4 @@
-import { WORKER_URL } from './config.js?v=1.0.16';
+import { WORKER_URL } from './config.js?v=1.0.1-pr1.1';
 
 export class SearchError extends Error {}
 
