@@ -11,7 +11,7 @@ concurrency:
 env:
   PACKAGE_ID: golf-club-deal-finder
   PROJECT: Golf Club Deal Finder
-  CHANNEL: CHANNEL_NAME_FROM_WIZARD
+  CHANNEL: golf-club-finder
   ENVIRONMENT: pr-${{ github.event.pull_request.number }}
   OCTOPUS_URL: ${{ secrets.OCTOPUS_SERVER_URL }}
   OCTOPUS_API_KEY: ${{ secrets.OCTOPUS_API_KEY }}
