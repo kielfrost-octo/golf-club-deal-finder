@@ -1,0 +1,4 @@
+export const WORKER_URL = 'https://golf-club-finder.kiel-frost.workers.dev';
+export const FEATURE_CLIENT_ID = 'eyJhbGciOiJFUzI1NiIsImtpZCI6ImE4MTc0MWRiOGY5OTQ4NzE5NmMwZGQ1NzcwYmQzMjQ3IiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL29jdG9mcm9zdC5vY3RvcHVzLmFwcCIsInJlbGVhc2VfdmVyc2lvbiI6IjEuMC4xNyIsInN1YiI6IllUWXdNamt6TldJdFkyTmtNaTAwTjJKa0xXSm1ZbU10TlRsaFlqWXhPV000WlRabU9sQnliMnBsWTNSekxUSXhPa1Z1ZG1seWIyNXRaVzUwY3kweiJ9.axxeTrlC1N5OTRpLT6B7wLFwhs5fgCICqEdY_8_o4bM6BJLQWhEl8x4JZtmt5A4eMXnT3tYx3a89PL2UAYxWzA';
+export const RELEASE_VERSION = '1.0.17';
+export const ENVIRONMENT = 'Production';
