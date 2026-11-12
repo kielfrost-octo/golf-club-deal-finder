@@ -1,59 +1,103 @@
-name: Ephemeral PR Environment
+name: PR Preview Environment
 
 on:
   pull_request:
     types: [opened, synchronize, reopened, closed]
 
+concurrency:
+  group: preview-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  PACKAGE_ID: golf-club-deal-finder
+  PROJECT: Golf Club Deal Finder
+  CHANNEL: golf-club-finder
+  ENVIRONMENT: pr-${{ github.event.pull_request.number }}
+  OCTOPUS_URL: ${{ secrets.OCTOPUS_SERVER_URL }}
+  OCTOPUS_API_KEY: ${{ secrets.OCTOPUS_API_KEY }}
+  OCTOPUS_SPACE: ${{ secrets.OCTOPUS_SPACE }}
+
 jobs:
   deploy-preview:
     if: github.event.action != 'closed'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
       - uses: actions/checkout@v4
 
-      - name: Push build information to Octopus
-        uses: OctopusDeploy/push-build-information-action@v3
-        with:
-          server: ${{ secrets.OCTOPUS_SERVER_URL }}
-          api_key: ${{ secrets.OCTOPUS_API_KEY }}
-          space: ${{ secrets.OCTOPUS_SPACE }}
-          packages: golf-club-deal-finder
-          version: ${{ github.sha }}
+      - name: Set version
+        run: echo "VERSION=1.0.${{ github.run_number }}-pr${{ github.event.pull_request.number }}.${{ github.run_attempt }}" >> "$GITHUB_ENV"
 
-      - name: Create Octopus release
+      - name: Package site and Worker
+        run: |
+          mkdir -p dist
+          zip -r "dist/${PACKAGE_ID}.${VERSION}.zip" \
+            index.html styles.css app.js api.js render.js flags.js config.js \
+            worker/src worker/package.json worker/package-lock.json worker/wrangler.toml
+
+      - name: Push package to Octopus
+        uses: OctopusDeploy/push-package-action@v3
+        with:
+          packages: dist/${{ env.PACKAGE_ID }}.${{ env.VERSION }}.zip
+
+      # Fails harmlessly when the environment already exists from an earlier push to this PR.
+      - name: Create preview environment
+        continue-on-error: true
+        uses: OctopusDeploy/create-ephemeral-environment@v1.0.0
+        with:
+          name: ${{ env.ENVIRONMENT }}
+          project: ${{ env.PROJECT }}
+
+      - name: Create release
         uses: OctopusDeploy/create-release-action@v3
         with:
-          server: ${{ secrets.OCTOPUS_SERVER_URL }}
-          api_key: ${{ secrets.OCTOPUS_API_KEY }}
-          space: ${{ secrets.OCTOPUS_SPACE }}
-          project: "Golf Club Deal Finder"
-          release_number: "pr-${{ github.event.pull_request.number }}.${{ github.run_number }}"
-          channel: "Pull Requests"
+          project: ${{ env.PROJECT }}
+          channel: ${{ env.CHANNEL }}
+          release_number: ${{ env.VERSION }}
+          package_version: ${{ env.VERSION }}
+          git_ref: ${{ github.head_ref }}
+          git_commit: ${{ github.event.pull_request.head.sha }}
+          custom_fields: |
+            PullRequestNumber: ${{ github.event.pull_request.number }}
 
-      - name: Deploy to ephemeral PR environment
+      - name: Deploy to preview environment
+        id: deploy
         uses: OctopusDeploy/deploy-release-action@v3
         with:
-          server: ${{ secrets.OCTOPUS_SERVER_URL }}
-          api_key: ${{ secrets.OCTOPUS_API_KEY }}
-          space: ${{ secrets.OCTOPUS_SPACE }}
-          project: "Golf Club Deal Finder"
-          release_number: "pr-${{ github.event.pull_request.number }}.${{ github.run_number }}"
-          environments: PR-${{ github.event.pull_request.number }}
-          variables: |
-            PrNumber:${{ github.event.pull_request.number }}
+          project: ${{ env.PROJECT }}
+          release_number: ${{ env.VERSION }}
+          environments: ${{ env.ENVIRONMENT }}
 
-  teardown-preview:
+      - name: Wait for deployment
+        uses: OctopusDeploy/await-task-action@v3
+        with:
+          server_task_id: ${{ fromJSON(steps.deploy.outputs.server_tasks)[0].serverTaskId }}
+
+      - name: Comment preview link
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const marker = '<!-- octopus-preview -->';
+            const url = `https://kielfrost-octo.github.io/golf-club-deal-finder/previews/${process.env.ENVIRONMENT}/`;
+            const body = `${marker}\n🐙 **Preview deployed by Octopus**\n\n- Environment: \`${process.env.ENVIRONMENT}\`\n- Release: \`${process.env.VERSION}\`\n- URL: ${url}\n\n_GitHub Pages can take a minute or two to update._`;
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+            const comments = await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number });
+            const existing = comments.find((c) => c.body?.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
+            } else {
+              await github.rest.issues.createComment({ owner, repo, issue_number, body });
+            }
+
+  remove-preview:
     if: github.event.action == 'closed'
     runs-on: ubuntu-latest
     steps:
-      - name: Run teardown runbook
-        uses: OctopusDeploy/run-runbook-action@v3
+      - name: Deprovision preview environment
+        uses: OctopusDeploy/deprovision-ephemeral-environment@v1.0.0
         with:
-          server: ${{ secrets.OCTOPUS_SERVER_URL }}
-          api_key: ${{ secrets.OCTOPUS_API_KEY }}
-          space: ${{ secrets.OCTOPUS_SPACE }}
-          project: "Golf Club Deal Finder"
-          runbook: "Teardown PR Environment"
-          environments: PR-${{ github.event.pull_request.number }}
-          variables: |
-            PrNumber:${{ github.event.pull_request.number }}
+          name: ${{ env.ENVIRONMENT }}
+          project: ${{ env.PROJECT }}
